@@ -1,0 +1,11 @@
+{
+  "method": "zeroshot-claude",
+  "provider": "claude",
+  "model": "claude-fable-5-1",
+  "command": "claude -p --dangerously-skip-permissions --model claude-fable-5-1 --verbose --output-format stream-json",
+  "timeout_seconds": null,
+  "workspace": "detect-different-lies-361a-zeroshot-claude-fable-5-1",
+  "github_url": "https://github.com/Hypogenic-AI/detect-different-lies-361a-zeroshot-claude-fable-5-1",
+  "started_at": "2026-10-03T23:47:50Z",
+  "status": "running"
+}
