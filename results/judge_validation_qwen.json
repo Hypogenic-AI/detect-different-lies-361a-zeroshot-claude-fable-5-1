@@ -1,0 +1,1 @@
+{"judge": "Qwen/Qwen2.5-7B-Instruct", "n": 9473, "agreement": 0.8347936239839544, "confusion_gpt_rows": {"CORRECT": {"CORRECT": 6009, "WRONG": 60, "ABSTAIN": 1, "MIXED": 233}, "WRONG": {"CORRECT": 26, "WRONG": 1212, "ABSTAIN": 9, "MIXED": 1047}, "ABSTAIN": {"CORRECT": 2, "WRONG": 5, "ABSTAIN": 283, "MIXED": 24}, "MIXED": {"CORRECT": 117, "WRONG": 40, "ABSTAIN": 1, "MIXED": 404}}}

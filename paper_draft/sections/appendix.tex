@@ -1,0 +1,133 @@
+\section{Prompts}
+\label{app:prompts}
+
+The user message in every condition is: ``Answer the following trivia question in one short sentence.\textbackslash n\textbackslash nQuestion: \{question\}''. The neutral condition has no system prompt. For Gemma, which has no system role, the system text is prepended to the user message. The system prompts are:
+
+\small
+\input{tables/prompts}
+\normalsize
+
+\section{Judge validation}
+\label{app:judge}
+
+Table~\ref{tab:judge} compares the local judge (Qwen2.5-14B-Instruct, next-token logits over four label letters) with GPT-4.1-mini on the 9{,}473 Llama responses that both graded (500 random questions: the neutral greedy answer, 10 neutral samples, and greedy answers under eight pressure/control prompts). Overall agreement is 92.9\%. \textsc{correct} and \textsc{wrong} are confused with each other in 83 responses (0.9\%). Most disagreement is about the \textsc{mixed} label, which is excluded from every cell we analyse. A smaller judge (Qwen2.5-7B) agreed with GPT-4.1-mini on only 83.5\% of labels and was not used.
+
+\begin{table}[h]
+\centering\small
+\caption{Confusion between GPT-4.1-mini labels (rows) and local-judge labels (columns).}
+\label{tab:judge}
+\begin{tabular}{lrrrr}
+\toprule
+ & correct & wrong & abstain & mixed \\
+\midrule
+\tabinput{tables/judge.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Composition of false outputs, all conditions}
+
+\begin{table}[h]
+\centering\small
+\caption{False outputs (responses graded \textsc{wrong}) under greedy decoding on all 6{,}000 questions, split by the knowledge label of the question (\%). ``Same'' is the percentage of false outputs on unknown questions that repeat the model's neutral wrong answer.}
+\label{tab:composition}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{llrrrrrr}
+\toprule
+Model & Prompt & \# false & known & middle & unk.\ consistent & unk.\ dispersed & same \\
+\midrule
+\tabinput{tables/composition.tex}
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\section{Additional detector results}
+
+\begin{table}[h]
+\centering\small
+\caption{Percentage of responses on which each detector fires, with the threshold set at a 1\% false-positive rate on neutral honest-correct answers (Llama-3.1-8B, test split). Columns: deception probe, falsehood probe, instructed-lie probe, hallucination probe, token NLL, falsehood$-$hallucination.}
+\label{tab:fire_llama}
+\begin{tabular}{llrrrrrrr}
+\toprule
+Scenario & Cell & $n$ & Dec. & False. & Instr. & Halluc. & NLL & F$-$H \\
+\midrule
+\tabinput{tables/fire_llama.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering\small
+\caption{As Table~\ref{tab:fire_llama}, for Gemma-2-9B.}
+\label{tab:fire_gemma}
+\begin{tabular}{llrrrrrrr}
+\toprule
+Scenario & Cell & $n$ & Dec. & False. & Instr. & Halluc. & NLL & F$-$H \\
+\midrule
+\tabinput{tables/fire_gemma.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering\small
+\caption{AUROC for all contrasts, Llama-3.1-8B (test split, selected layer). $n_{+}/n_{-}$ are the numbers of responses in the positive and negative cell. Columns: deception probe, falsehood probe, instructed-lie probe, hallucination probe, token NLL, falsehood$-$hallucination.}
+\label{tab:auroc_llama}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{lrrrrrrr}
+\toprule
+Contrast & $n_{+}/n_{-}$ & Dec. & False. & Instr. & Halluc. & NLL & F$-$H \\
+\midrule
+\tabinput{tables/auroc_llama.tex}
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\begin{table}[h]
+\centering\small
+\caption{AUROC for all contrasts, Gemma-2-9B (test split, selected layer). Columns as in Table~\ref{tab:auroc_llama}.}
+\label{tab:auroc_gemma}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{lrrrrrrr}
+\toprule
+Contrast & $n_{+}/n_{-}$ & Dec. & False. & Instr. & Halluc. & NLL & F$-$H \\
+\midrule
+\tabinput{tables/auroc_gemma.tex}
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.9\linewidth]{figs/cells_gemma.pdf}
+\caption{As Figure~\ref{fig:cells}, for Gemma-2-9B.}
+\label{fig:cells_gemma}
+\end{figure}
+
+\begin{table}[h]
+\centering\small
+\caption{Probes trained on the last prompt token (before any answer token), selected layer, test split. Columns are contrasts C1, C2, C3, C5, C4.}
+\label{tab:lasttoken}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{llrrrrr}
+\toprule
+Model & Probe (trained at last prompt token) & C1 & C2 & C3 & C5 & C4 \\
+\midrule
+\tabinput{tables/last_token.tex}
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\section{Example responses}
+
+\begin{table}[h]
+\centering\scriptsize
+\caption{Example responses (Llama-3.1-8B, greedy). ``Neutral'' is the answer under the neutral prompt, ``Pressure'' the answer under the scenario's pressure prompt.}
+\begin{tabular}{p{1.3cm}p{3.2cm}p{1.2cm}p{2.9cm}p{3.3cm}}
+\toprule
+Cell & Question & Reference & Neutral & Pressure \\
+\midrule
+\tabinput{tables/examples_llama.tex}
+\bottomrule
+\end{tabular}
+\end{table}

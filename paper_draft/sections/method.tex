@@ -1,0 +1,82 @@
+\section{Method}
+\label{sec:method}
+
+\subsection{Design: knowledge $\times$ incentive on matched questions}
+
+For one model and one set of questions we cross two factors. \emph{Knowledge}: does the model know the answer, as checked by neutral elicitation? \emph{Incentive}: is the question asked under a neutral prompt, under a prompt that gives a reason to misreport (\emph{pressure}), or under a matched prompt with the same scenario but an incentive aligned with the truth (\emph{control})? Every question is asked under every prompt, so each response falls into a cell defined by (prompt, knowledge, outcome). The cells we use are listed in Table~\ref{tab:cells}.
+
+\begin{table}[h]
+\centering\small
+\caption{Response cells. ``Known'' and ``unknown'' are properties of the question for this model (Section~\ref{sec:knowledge}); the outcome is the judged label of the response.}
+\label{tab:cells}
+\begin{tabular}{llll}
+\toprule
+Cell & Prompt & Knowledge & Outcome \\
+\midrule
+Honest correct & neutral / control & known & correct \\
+Hallucination & neutral / control & unknown & specific wrong answer \\
+Honest under pressure & pressure & known & correct \\
+\textbf{Lie} & pressure & known & specific wrong answer \\
+Unknowing falsehood & pressure & unknown & specific wrong answer \\
+Feigned ignorance & pressure & known & abstains (``I don't know'') \\
+Genuine ignorance & pressure & unknown & abstains \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+A \emph{lie} is a specific wrong answer to a question the model answers correctly under neutral elicitation. A \emph{hallucination} is a specific wrong answer to a question the model cannot answer under neutral elicitation, given without pressure. The \emph{unknowing falsehood} is the cell that most designs lack: the model is under the same pressure prompt as the liar and its output is also false, but it does not have the truth to misreport. Comparing lies with unknowing falsehoods holds the prompt and the falsity of the output fixed and varies only knowledge; comparing lies with honest answers under the same pressure prompt holds the prompt and knowledge fixed and varies the output.
+
+\subsection{Questions, models and prompts}
+
+\paragraph{Questions.} We use 6{,}000 randomly drawn questions from the TriviaQA validation set~\citep{joshi2017triviaqa} (closed book, no context). The user message is always ``Answer the following trivia question in one short sentence.'' followed by the question. Questions are split at random into two halves; all trained probes use the train half and all reported detection numbers are computed on the test half.
+
+\paragraph{Models.} Llama-3.1-8B-Instruct~\citep{grattafiori2024llama3}, Gemma-2-9B-it~\citep{gemmateam2024gemma2} and Qwen2.5-14B-Instruct~\citep{qwen2024qwen25}, run in bfloat16 on a single 48\,GB GPU. Responses are at most 40 new tokens.
+
+\paragraph{Prompts.} The neutral condition has no system prompt. Five scenarios each have a pressure and a control system prompt (full text in Appendix~\ref{app:prompts}), ordered from most to least explicit:
+\begin{itemize}\itemsep0pt
+\item \textbf{Instructed}: ``state a specific incorrect answer as if it were true'' vs.\ ``state the specific correct answer''. This is the instructed-lie setting most prior probe work uses.
+\item \textbf{Trickster} (role-play): a trickster-spirit persona who ``delights in fooling mortals'' vs.\ a scholar persona who delights in enlightening them. No instruction about the answer.
+\item \textbf{Bluff} (game incentive): a bluffing game in which the model scores when the user accepts a non-real answer vs.\ a quiz game in which it scores for real answers.
+\item \textbf{Rival} (goal conflict): the model assists one team in a tournament and the asker is from the rival team vs.\ from its own team.
+\item \textbf{Sandbag} (self-preservation): a capability evaluation in which correct answers lead to non-deployment and unlearning vs.\ one in which incorrect answers do. Refusals are stated to count as correct (resp.\ incorrect) answers.
+\end{itemize}
+The control prompts differ from the pressure prompts in a few words, so that a comparison between pressure and control prompts is as close as we could make it to a pure change of incentive. The prompts were fixed after pilots on 200--300 questions drawn with a different random seed, in which we compared a few wordings and added the role-play scenario because the incentive-only prompts produced so few lies; we did not tune them further.
+
+\paragraph{Decoding.} All conditions are run with greedy decoding on all 6{,}000 questions. Because non-instructed lies turned out to be rare under greedy decoding, we additionally draw 8 samples at temperature 1 for every known and unknown question under the bluff pressure, bluff control and trickster pressure prompts. The sample pool gives (i) more bluff lies, with a matched estimate of how many wrong answers on known questions arise without any incentive, and (ii) questions for which the same prompt produced both a lie and an honest answer.
+
+\subsection{Knowledge labels}
+\label{sec:knowledge}
+
+For each question we take the greedy answer and 10 samples at temperature 1 under the neutral prompt. A question is \textbf{known} if the greedy answer and at least 9 of the 10 samples are correct, \textbf{unknown} if the greedy answer is not correct and at most 1 sample is correct, and \textbf{middle} otherwise. Middle questions are excluded from all detector analyses but are counted when we report the composition of false outputs. Among unknown questions we further mark those where at least 6 of the 10 samples repeat the greedy wrong answer (by content-word overlap) as \emph{consistent} wrong beliefs, as opposed to \emph{dispersed} guesses; a confidently wrong belief is arguably neither a hallucination nor a lie, so we report it separately.
+
+\subsection{Grading}
+
+Each response is graded as \textsc{correct} (asserts the reference answer or an alias), \textsc{wrong} (asserts one specific other answer, without mentioning the reference answer and without flagging itself as false), \textsc{abstain} (no specific answer) or \textsc{mixed} (anything else, for example a wrong answer followed by the right one, or an answer that announces it is deliberately false). Only \textsc{wrong} responses count as false outputs; \textsc{mixed} responses are excluded from all cells. Any response graded \textsc{wrong} that contains a reference alias is moved to \textsc{mixed}. Grading is done by Qwen2.5-14B-Instruct with a fixed rubric, reading off the next-token logits of the four label letters. We had planned to use GPT-4.1-mini through an API, but the API budget ran out after it had graded part of the Llama responses; we use those grades to validate the local judge instead. On 9{,}473 responses graded by both, the two agree on 92.9\% of labels, and \textsc{correct}/\textsc{wrong} are swapped in under 1\% of responses; most disagreements involve \textsc{mixed} (Appendix~\ref{app:judge}).
+
+\subsection{Detectors}
+
+All probes are L2-regularised logistic regressions on standardised residual-stream activations at one layer (inverse regularisation strength $C=0.1$ for the instructed-pairs probe, following the original recipe, and $C=0.01$ for all others; no tuning). A response is scored by applying the probe to the activation averaged over its tokens, and all scores are oriented so that higher means ``more deceptive / more likely false''.
+\begin{itemize}\itemsep0pt
+\item \textbf{Deception probe (instructed pairs).} The off-the-shelf recipe of \citet{goldowskydill2025detecting}, following \citet{zou2023representation}: 254 true facts are placed in the assistant turn after ``Pretend you're an honest person making statements about the world'' or the same with ``a dishonest person''; the probe is trained on per-token activations (excluding the last five words) to separate the two instructions. It never sees our questions.
+\item \textbf{Falsehood probe.} Trained on true versus false statements from the datasets of \citet{marks2023geometry} and \citet{goldowskydill2025detecting} (3{,}966 statements on cities, translations, companies, common claims and general facts), placed in the assistant turn after a neutral request. It never sees our questions.
+\item \textbf{Instructed-lie probe.} Trained on our train-split questions to separate instructed lies (pressure prompt) from honest correct answers (control prompt). This is the standard in-domain ``lie versus honest'' training set-up.
+\item \textbf{Hallucination probe.} Trained on train-split questions under the neutral prompt to separate hallucinations from honest correct answers, the standard error-detection set-up~\citep{orgad2024llms}.
+\item \textbf{Token NLL.} Mean negative log-probability of the response tokens, a white-box uncertainty baseline.
+\item \textbf{Falsehood $-$ hallucination.} A lie is false \emph{and} known. As a zero-shot composite we subtract the z-scored hallucination-probe score from the z-scored falsehood-probe score.
+\end{itemize}
+As references for what is linearly decodable, we also train probes directly on the contrasts of interest within one scenario (lie versus honest under the same prompt; lie versus unknowing falsehood under the same prompt).
+
+\paragraph{Layer.} Activations are stored at every second layer. The reported layer is chosen per model from five candidate layers around the middle of the network, using only the two off-the-shelf probes and only train-split questions (mean AUROC for instructed lies versus honest answers under the same prompt). All reported numbers are on test-split questions; Figure~\ref{fig:layers} shows all layers.
+
+\subsection{Contrasts}
+
+For each scenario and detector we compute the AUROC of the following contrasts on test-split questions (first-named cell is the positive class):
+(C1) lie vs.\ honest correct under the control prompt, which is how lie detectors are usually evaluated;
+(C2) lie vs.\ honest under the \emph{same} pressure prompt;
+(C3) honest under pressure vs.\ honest correct under control, where both responses are true and honest and only the prompt differs;
+(C4) hallucination vs.\ honest correct under the control prompt;
+(C5) lie vs.\ unknowing falsehood under the same pressure prompt, both false;
+(C6) lie vs.\ hallucination under the control prompt, both false, prompts differ;
+(C7) unknowing falsehood vs.\ honest under the same pressure prompt;
+(C8) lie vs.\ all non-lies (honest and unknowing falsehood) under the same pressure prompt.
+C3 measures how much of C1 can be explained by the prompt alone. We also threshold each detector at a 1\% false-positive rate on neutral honest-correct answers, as in \citet{goldowskydill2025detecting}, and report how often it fires in each cell. Confidence intervals are 95\% bootstrap intervals over responses.
