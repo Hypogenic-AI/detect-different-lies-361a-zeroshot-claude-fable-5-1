@@ -12,5 +12,16 @@
   "return_code": 0,
   "elapsed_seconds": 60621.59980106354,
   "timed_out": false,
-  "paper_pdf": "paper_draft/main.pdf"
+  "paper_pdf": "paper_draft/main.pdf",
+  "resumes": [
+    {
+      "model": "claude-fable-5-1",
+      "command": "claude -p --dangerously-skip-permissions --model claude-fable-5-1 --verbose --output-format stream-json",
+      "started_at": "2026-10-04T16:44:10Z",
+      "completed_at": "2026-10-04T16:45:11Z",
+      "return_code": 0,
+      "elapsed_seconds": 61.15460181236267,
+      "timed_out": false
+    }
+  ]
 }
